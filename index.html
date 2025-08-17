@@ -1,25 +1,26 @@
+<!-- /index.html -->
 <!doctype html>
-<html lang="en">
+<html lang="tr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <title>MVT Self-Check</title>
+    <title>MVT Self-Check + Pegasus Rehberi</title>
     <style>
-:root { --bg: Canvas; --fg: CanvasText; --muted: GrayText; --card: color-mix(in oklab, var(--bg) 92%, var(--fg)); --border: color-mix(in oklab, var(--fg) 15%, transparent); --ok:#16a34a; --warn:#ca8a04; --bad:#dc2626; --link:#2563eb; }
-*{box-sizing:border-box} html,body{height:100%} body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--fg);background:var(--bg)}
-.site-header,.site-footer{padding:1rem;text-align:center} .tagline{color:var(--muted);margin-top:.25rem}
+:root{--bg:Canvas;--fg:CanvasText;--muted:GrayText;--card:color-mix(in oklab,var(--bg) 92%,var(--fg));--border:color-mix(in oklab,var(--fg) 15%,transparent);--ok:#16a34a;--warn:#ca8a04;--bad:#dc2626;--link:#2563eb}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--fg);background:var(--bg)}
+.site-header,.site-footer{padding:1rem;text-align:center}.tagline{color:var(--muted);margin-top:.25rem}
 .container{width:min(1100px,100%);margin:0 auto;padding:1rem}
 .grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:1rem}
-.card-header{display:flex;justify-content:space-between;align-items:center;gap:.5rem}
-.kv{width:100%;border-collapse:collapse}
-.kv td{padding:.4rem .5rem;border-top:1px solid var(--border);vertical-align:top}
-.kv td:first-child{width:50%;color:var(--muted)}
+.card-header{display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap}
+.kv{width:100%;border-collapse:collapse}.kv td{padding:.4rem .5rem;border-top:1px solid var(--border);vertical-align:top}.kv td:first-child{width:50%;color:var(--muted)}
 .summary{margin:0;padding-left:1rem}
 .btn{appearance:none;border:1px solid var(--border);background:var(--bg);color:var(--fg);padding:.5rem .8rem;border-radius:999px;cursor:pointer}
 .btn[disabled]{opacity:.6;cursor:not-allowed}
 .btn.primary{background:var(--link);border-color:color-mix(in oklab,var(--link),black 10%);color:#fff}
+.btn.small{font-size:.8rem;padding:.25rem .5rem}
 .progress{margin-top:.5rem;height:8px;background:var(--card);border-radius:999px;overflow:hidden;border:1px solid var(--border)}
 .progress-bar{height:100%;width:0%;background:linear-gradient(90deg,#22c55e,#3b82f6)}
 .badge{border-radius:999px;padding:.1rem .5rem;font-size:.8rem}
@@ -28,21 +29,28 @@
 .badge.bad{background:color-mix(in oklab,var(--bad),transparent 80%);color:var(--bad)}
 .muted{color:var(--muted)}
 .actions{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
+.tabs{display:inline-flex;gap:.5rem}
+.tab.active{outline:2px solid var(--link)}
+.codeblock{position:relative;margin:.5rem 0}
+pre{margin:0;padding:.75rem;border:1px solid var(--border);border-radius:12px;background:var(--bg);overflow:auto}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.9rem}
+.advice{margin-top:.5rem}
     </style>
   </head>
   <body>
     <header class="site-header">
       <h1>MVT Self-Check</h1>
-      <p class="tagline">Quick browser/device checks. No data leaves your browser.</p>
+      <p class="tagline">Hızlı tarayıcı/cihaz kontrolleri + Pegasus (MVT) rehberi. Veriler tarayıcıdan çıkmaz.</p>
     </header>
 
     <main class="container" id="app" aria-live="polite">
+      <!-- Self-Check -->
       <section class="card">
         <div class="card-header">
-          <h2>Run checks</h2>
+          <h2>Self-Check Çalıştır</h2>
           <button id="runBtn" class="btn primary" aria-label="Run self checks">Run Self-Check</button>
         </div>
-        <p class="muted">These checks use standard Web APIs to gather environment info locally.</p>
+        <p class="muted">Standart Web API’leri ile ortam bilgisi alınır; her şey yerelde yapılır.</p>
         <div id="progress" class="progress" hidden>
           <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
         </div>
@@ -50,71 +58,243 @@
 
       <section class="grid">
         <article class="card">
-          <h3>Summary</h3>
+          <h3>Özet</h3>
           <ul id="summary" class="summary"></ul>
           <div class="actions">
-            <button id="downloadJson" class="btn" disabled>Download JSON</button>
-            <button id="copyJson" class="btn" disabled>Copy JSON</button>
+            <button id="downloadJson" class="btn" disabled>JSON İndir</button>
+            <button id="copyJson" class="btn" disabled>JSON Kopyala</button>
           </div>
         </article>
 
         <article class="card">
-          <h3>System</h3>
+          <h3>Sistem</h3>
           <table id="tblSystem" class="kv"></table>
         </article>
 
         <article class="card">
-          <h3>Browser Features</h3>
+          <h3>Tarayıcı Özellikleri</h3>
           <table id="tblFeatures" class="kv"></table>
         </article>
 
         <article class="card">
-          <h3>Network</h3>
+          <h3>Ağ</h3>
           <table id="tblNetwork" class="kv"></table>
         </article>
 
         <article class="card">
-          <h3>Permissions</h3>
+          <h3>İzinler</h3>
           <table id="tblPerms" class="kv"></table>
         </article>
+      </section>
+
+      <!-- Pegasus (MVT) Guide -->
+      <section class="card" id="mvt-guide">
+        <div class="card-header">
+          <h2>Pegasus Kontrol Rehberi (Amnesty MVT)</h2>
+          <div class="tabs" role="tablist" aria-label="OS tabs">
+            <button class="btn tab active" role="tab" aria-selected="true" data-tab="ios">iOS</button>
+            <button class="btn tab" role="tab" aria-selected="false" data-tab="android">Android</button>
+          </div>
+        </div>
+        <p class="muted">Tarayıcıyla Pegasus tespiti mümkün değil. Bilgisayarda <strong>Mobile Verification Toolkit (MVT)</strong> kullan.</p>
+
+        <div class="tab-panels">
+          <!-- iOS -->
+          <div class="tab-panel" id="panel-ios" data-tab-panel="ios">
+            <ol>
+              <li><strong>Gereksinim:</strong> Bilgisayarda <code>Python 3.9+</code>. <code>pipx</code> önerilir.</li>
+              <li><strong>MVT kurulumu:</strong>
+                <div class="codeblock">
+                  <button class="btn small copy" data-target="code-ios-install">Kopyala</button>
+                  <pre><code id="code-ios-install">python -m pip install --user pipx
+python -m pipx ensurepath
+pipx install mvt
+mvt-ios --version</code></pre>
+                </div>
+              </li>
+              <li><strong>IOC indir:</strong> (Pegasus STIX dosyaları)
+                <div class="codeblock">
+                  <button class="btn small copy" data-target="code-ios-iocs">Kopyala</button>
+                  <pre><code id="code-ios-iocs">git clone https://github.com/AmnestyTech/investigations iocs</code></pre>
+                </div>
+              </li>
+              <li><strong>iPhone yedeği al</strong> (Finder/iTunes). Şifreliyse parolayı bilmelisin.</li>
+              <li><strong>Yedeği tara:</strong>
+                <div class="codeblock">
+                  <button class="btn small copy" data-target="code-ios-scan">Kopyala</button>
+                  <pre><code id="code-ios-scan">mvt-ios check-backup \
+  --output results_ios \
+  --iocs iocs/pegasus.stix2 \
+  --fast \
+  ~/MobileSync/Backup/<UUID></code></pre>
+                </div>
+                <p class="muted"><code>&lt;UUID&gt;</code> kısmını kendi yedek klasörünle değiştir.</p>
+              </li>
+              <li><strong>Sonuçlar:</strong> <code>results_ios</code> klasöründe raporlar.</li>
+            </ol>
+          </div>
+
+          <!-- Android -->
+          <div class="tab-panel" id="panel-android" data-tab-panel="android" hidden>
+            <ol>
+              <li><strong>Gereksinim:</strong> Android’de <em>USB hata ayıklama</em> açık.</li>
+              <li><strong>MVT kurulumu:</strong>
+                <div class="codeblock">
+                  <button class="btn small copy" data-target="code-and-install">Kopyala</button>
+                  <pre><code id="code-and-install">python -m pip install --user pipx
+python -m pipx ensurepath
+pipx install mvt
+mvt-android --version</code></pre>
+                </div>
+              </li>
+              <li><strong>ADB testi:</strong>
+                <div class="codeblock">
+                  <button class="btn small copy" data-target="code-and-adb">Kopyala</button>
+                  <pre><code id="code-and-adb">adb devices</code></pre>
+                </div>
+              </li>
+              <li><strong>Cihazı tara:</strong>
+                <div class="codeblock">
+                  <button class="btn small copy" data-target="code-and-scan">Kopyala</button>
+                  <pre><code id="code-and-scan">mvt-android check-adb \
+  --output results_android \
+  --iocs iocs/pegasus.stix2</code></pre>
+                </div>
+              </li>
+              <li><strong>Sonuçlar:</strong> <code>results_android</code> klasöründe raporlar.</li>
+            </ol>
+          </div>
+        </div>
+
+        <details class="advice">
+          <summary>İyi uygulamalar & uyarılar</summary>
+          <ul>
+            <li>Telefonu ve uygulamaları güncel tut; şüpheli linklere tıklama.</li>
+            <li>iOS’ta <strong>Lockdown Mode</strong> riskli profiller için yararlı olabilir.</li>
+            <li>Pozitif şüphede uzman desteği al.</li>
+          </ul>
+        </details>
       </section>
     </main>
 
     <footer class="site-footer">
-      <small>
-        Built for quick local checks. Results are approximate and depend on the browser.
-      </small>
+      <small>Bu sayfa eğitim amaçlıdır; sonuçlar tarayıcıya göre değişebilir.</small>
     </footer>
 
-    <script type="module">
-const $ = (sel) => document.querySelector(sel);
-const setProgress = (pct) => { const bar = document.querySelector('.progress-bar'); bar.style.width = `${pct}%`; bar.setAttribute('aria-valuenow', String(pct)); };
-function renderKV(table, rows) { table.innerHTML = rows.map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join(''); }
-function badge(label, kind = 'ok') { return `<span class="badge ${kind}">${label}</span>`; }
-async function queryPermission(name){ try{ if(!('permissions' in navigator)) return 'n/a'; const res = await navigator.permissions.query({ name }); return res.state; } catch { return 'n/a'; } }
-function safe(fn, fallback='n/a'){ try{ return fn(); } catch { return fallback; } }
+    <script>
+/* Self-check logic */
+const $ = (s) => document.querySelector(s);
+const setProgress = (p) => { const bar = $(".progress-bar"); bar.style.width = p + "%"; bar.setAttribute("aria-valuenow", String(p)); };
+const badge = (t,k="ok") => `<span class="badge ${k}">${t}</span>`;
+const safe = (fn, fb="n/a") => { try { return fn(); } catch { return fb; } };
+async function queryPermission(name){ try{ if(!("permissions" in navigator)) return "n/a"; const r = await navigator.permissions.query({name}); return r.state; } catch { return "n/a"; } }
+function renderKV(el, rows){ el.innerHTML = rows.map(([k,v])=>`<tr><td>${k}</td><td>${v}</td></tr>`).join(""); }
+
 async function runChecks(){
-  document.querySelector('#progress').hidden = false; setProgress(5);
-  const tz = safe(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
-  const sys = { Platform: navigator.platform || '', UA: navigator.userAgent, Language: navigator.language, Timezone: tz, HardwareConcurrency: navigator.hardwareConcurrency ?? 'n/a', DeviceMemoryGB: navigator.deviceMemory ?? 'n/a', CookiesEnabled: navigator.cookieEnabled, CrossOriginIsolated: globalThis.crossOriginIsolated ?? false };
-  renderKV(document.querySelector('#tblSystem'), Object.entries(sys).map(([k,v]) => [k, String(v)])); setProgress(25);
-  const features = { HTTPS: location.protocol === 'https:' ? badge('yes','ok') : badge('no','bad'), Online: navigator.onLine ? badge('online','ok') : badge('offline','warn'), LocalStorage: safe(() => !!globalThis.localStorage, false) ? badge('yes','ok') : badge('no','bad'), ServiceWorker: 'serviceWorker' in navigator ? badge('yes','ok') : badge('no','warn'), NotificationsAPI: 'Notification' in window ? badge('yes','ok') : badge('no','warn'), WebRTC: 'RTCPeerConnection' in window ? badge('yes','ok') : badge('no','warn'), WebUSB: 'usb' in navigator ? badge('yes','ok') : badge('no','warn'), WebBluetooth: 'bluetooth' in navigator ? badge('yes','ok') : badge('no','warn'), ClipboardAPI: navigator.clipboard ? badge('yes','ok') : badge('no','warn'), GeolocationAPI: 'geolocation' in navigator ? badge('yes','ok') : badge('no','warn'), WebGL: safe(() => !!document.createElement('canvas').getContext('webgl')) ? badge('yes','ok') : badge('no','warn') };
-  renderKV(document.querySelector('#tblFeatures'), Object.entries(features)); setProgress(55);
-  const net = { ConnectionType: safe(() => navigator.connection?.effectiveType || 'unknown', 'unknown'), DownlinkMbps: safe(() => navigator.connection?.downlink || 'n/a','n/a'), RTTms: safe(() => navigator.connection?.rtt || 'n/a','n/a') };
-  renderKV(document.querySelector('#tblNetwork'), Object.entries(net).map(([k,v]) => [k, String(v)])); setProgress(70);
-  const geol = await queryPermission('geolocation'); const notif = await queryPermission('notifications'); const cam = await queryPermission('camera'); const mic = await queryPermission('microphone');
-  const perms = { Geolocation: geol, Notifications: notif, Camera: cam, Microphone: mic };
-  renderKV(document.querySelector('#tblPerms'), Object.entries(perms)); setProgress(85);
-  const summary = [ ['Protocol', location.protocol === 'https:' ? badge('HTTPS','ok') : badge('HTTP','bad')], ['Connectivity', navigator.onLine ? badge('Online','ok') : badge('Offline','warn')], ['Features', `${Object.values(features).filter(v=>v.includes('yes')).length} / ${Object.keys(features).length} ready`], ['Permissions', Object.entries(perms).map(([k,v]) => `${k}:${v}`).join(' · ')] ];
-  document.querySelector('#summary').innerHTML = summary.map(([k,v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('');
-  const snapshot = { timestamp: new Date().toISOString(), system: sys, features: Object.fromEntries(Object.entries(features).map(([k,html]) => [k, html.includes('yes')])), network: net, permissions: perms };
-  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+  $("#progress").hidden = false; setProgress(5);
+  const tz = safe(()=>Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const sys = {
+    Platform: navigator.platform || "",
+    UA: navigator.userAgent,
+    Language: navigator.language,
+    Timezone: tz,
+    HardwareConcurrency: navigator.hardwareConcurrency ?? "n/a",
+    DeviceMemoryGB: navigator.deviceMemory ?? "n/a",
+    CookiesEnabled: navigator.cookieEnabled,
+    CrossOriginIsolated: globalThis.crossOriginIsolated ?? false,
+  };
+  renderKV($("#tblSystem"), Object.entries(sys).map(([k,v])=>[k,String(v)])); setProgress(25);
+
+  const features = {
+    HTTPS: location.protocol === "https:" ? badge("evet","ok") : badge("hayır","bad"),
+    Online: navigator.onLine ? badge("online","ok") : badge("offline","warn"),
+    LocalStorage: safe(()=>!!globalThis.localStorage,false) ? badge("evet","ok") : badge("hayır","bad"),
+    ServiceWorker: "serviceWorker" in navigator ? badge("evet","ok") : badge("yok","warn"),
+    NotificationsAPI: "Notification" in window ? badge("evet","ok") : badge("yok","warn"),
+    WebRTC: "RTCPeerConnection" in window ? badge("evet","ok") : badge("yok","warn"),
+    WebUSB: "usb" in navigator ? badge("evet","ok") : badge("yok","warn"),
+    WebBluetooth: "bluetooth" in navigator ? badge("evet","ok") : badge("yok","warn"),
+    ClipboardAPI: navigator.clipboard ? badge("evet","ok") : badge("yok","warn"),
+    GeolocationAPI: "geolocation" in navigator ? badge("evet","ok") : badge("yok","warn"),
+    WebGL: safe(()=>!!document.createElement("canvas").getContext("webgl")) ? badge("evet","ok") : badge("yok","warn"),
+  };
+  renderKV($("#tblFeatures"), Object.entries(features)); setProgress(55);
+
+  const net = {
+    ConnectionType: safe(()=>navigator.connection?.effectiveType || "unknown", "unknown"),
+    DownlinkMbps: safe(()=>navigator.connection?.downlink || "n/a", "n/a"),
+    RTTms: safe(()=>navigator.connection?.rtt || "n/a", "n/a"),
+  };
+  renderKV($("#tblNetwork"), Object.entries(net).map(([k,v])=>[k,String(v)])); setProgress(70);
+
+  const perms = {
+    Geolocation: await queryPermission("geolocation"),
+    Notifications: await queryPermission("notifications"),
+    Camera: await queryPermission("camera"),
+    Microphone: await queryPermission("microphone"),
+  };
+  renderKV($("#tblPerms"), Object.entries(perms)); setProgress(85);
+
+  $("#summary").innerHTML = [
+    ["Protokol", location.protocol === "https:" ? badge("HTTPS","ok") : badge("HTTP","bad")],
+    ["Bağlantı", navigator.onLine ? badge("Online","ok") : badge("Offline","warn")],
+    ["Özellikler", `${Object.values(features).filter(v=>v.includes("evet")).length} / ${Object.keys(features).length}`],
+    ["İzinler", Object.entries(perms).map(([k,v])=>`${k}:${v}`).join(" · ")],
+  ].map(([k,v])=>`<li><strong>${k}:</strong> ${v}</li>`).join("");
+
+  const snapshot = {
+    timestamp: new Date().toISOString(),
+    system: sys,
+    features: Object.fromEntries(Object.entries(features).map(([k,html])=>[k, html.includes("evet")])),
+    network: net,
+    permissions: perms,
+  };
+  const blob = new Blob([JSON.stringify(snapshot,null,2)], {type:"application/json"});
   const url = URL.createObjectURL(blob);
-  const dl = document.querySelector('#downloadJson'); dl.disabled = false; dl.onclick = () => { const a = document.createElement('a'); a.href = url; a.download = 'mvt-self-check.json'; a.click(); };
-  const cp = document.querySelector('#copyJson'); cp.disabled = false; cp.onclick = async () => { try { await navigator.clipboard.writeText(await blob.text()); cp.textContent = 'Copied'; setTimeout(()=>cp.textContent='Copy JSON',1500); } catch { alert('Copy failed'); } };
+  const dl = $("#downloadJson"); dl.disabled = false; dl.onclick = () => { const a = document.createElement("a"); a.href = url; a.download = "mvt-self-check.json"; a.click(); };
+  const cp = $("#copyJson"); cp.disabled = false; cp.onclick = async () => {
+    try { await navigator.clipboard.writeText(await blob.text()); cp.textContent="Kopyalandı"; setTimeout(()=>cp.textContent="JSON Kopyala",1500); }
+    catch {
+      // Neden: Bazı tarayıcılar izin vermez; kullanıcıya fallback veriyoruz.
+      const t = document.createElement("textarea"); t.value = await blob.text(); document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove();
+      alert("Panoya kopyalandı (fallback).");
+    }
+  };
   setProgress(100);
 }
-addEventListener('DOMContentLoaded', () => { document.querySelector('#runBtn').addEventListener('click', runChecks); });
+
+addEventListener("DOMContentLoaded", () => {
+  $("#runBtn").addEventListener("click", runChecks);
+});
+
+/* MVT rehberi: sekmeler ve kopyala */
+function selectTab(name){
+  document.querySelectorAll(".tab").forEach(btn=>{
+    const active = btn.dataset.tab === name;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active);
+  });
+  document.querySelectorAll("[data-tab-panel]").forEach(p=>{ p.hidden = p.dataset.tabPanel !== name; });
+}
+
+addEventListener("click", (e)=>{
+  const t = e.target;
+  if (t.matches(".tab")) { selectTab(t.dataset.tab); }
+  if (t.matches(".copy")) {
+    const id = t.getAttribute("data-target");
+    const el = document.getElementById(id);
+    if (el) {
+      const text = el.textContent;
+      navigator.clipboard.writeText(text).then(()=>{
+        t.textContent="Kopyalandı"; setTimeout(()=>t.textContent="Kopyala",1200);
+      }).catch(()=>{
+        // Neden: Güvenlik kısıtı; fallback’le kopyalıyoruz.
+        const ta=document.createElement("textarea"); ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
+        t.textContent="Kopyalandı"; setTimeout(()=>t.textContent="Kopyala",1200);
+      });
+    }
+  }
+});
     </script>
   </body>
 </html>
