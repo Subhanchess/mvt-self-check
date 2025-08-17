@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
-    <title>MVT Self‑Check</title>
+    <title>MVT Self-Check</title>
     <style>
 :root { --bg: Canvas; --fg: CanvasText; --muted: GrayText; --card: color-mix(in oklab, var(--bg) 92%, var(--fg)); --border: color-mix(in oklab, var(--fg) 15%, transparent); --ok:#16a34a; --warn:#ca8a04; --bad:#dc2626; --link:#2563eb; }
 *{box-sizing:border-box} html,body{height:100%} body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--fg);background:var(--bg)}
@@ -32,7 +32,7 @@
   </head>
   <body>
     <header class="site-header">
-      <h1>MVT Self‑Check</h1>
+      <h1>MVT Self-Check</h1>
       <p class="tagline">Quick browser/device checks. No data leaves your browser.</p>
     </header>
 
@@ -40,7 +40,7 @@
       <section class="card">
         <div class="card-header">
           <h2>Run checks</h2>
-          <button id="runBtn" class="btn primary" aria-label="Run self checks">Run Self‑Check</button>
+          <button id="runBtn" class="btn primary" aria-label="Run self checks">Run Self-Check</button>
         </div>
         <p class="muted">These checks use standard Web APIs to gather environment info locally.</p>
         <div id="progress" class="progress" hidden>
@@ -87,7 +87,6 @@
     </footer>
 
     <script type="module">
-/* Minimal, dependency‑free. Only collects locally visible info. */
 const $ = (sel) => document.querySelector(sel);
 const setProgress = (pct) => { const bar = document.querySelector('.progress-bar'); bar.style.width = `${pct}%`; bar.setAttribute('aria-valuenow', String(pct)); };
 function renderKV(table, rows) { table.innerHTML = rows.map(([k,v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join(''); }
