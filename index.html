@@ -1,3 +1,5 @@
+Replace the root file "index.html" on branch gh-pages with the EXACT content below and commit directly to gh-pages.
+
 <!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MVT Self-Check</title>
 <style>
@@ -192,7 +194,8 @@ pipx install mvt || true
 `;
 const passPart=pass?`BACKUP_PASS='${shEscape(pass)}'`:`read -s BACKUP_PASS; printf "\\n"`;
 return `# ==== MVT Kurulum ====
-${installBlock}# ==== Değişkenler ====
+${installBlock}
+# ==== Değişkenler ====
 BACKUP_SRC="${backup}"
 DEC="${dec}"
 OUT="${out}"
@@ -225,6 +228,6 @@ document.getElementById("gen").onclick=()=>{
 };
 document.getElementById("copy").onclick=async()=>{await navigator.clipboard.writeText(outbox.textContent);alert("Komutlar kopyalandı. Terminal'e yapıştırın.");};
 document.getElementById("download").onclick=()=>{const blob=new Blob([outbox.textContent],{type:"text/x-shellscript"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="mvt_ios_scan.sh";a.click();URL.revokeObjectURL(a.href);};
-document.getElementById("reset").onclick=()=>["backup","pass","dec","out"].forEach(id=>document.getElementById(id).value="");outbox.textContent="—";document.getElementById("copy").disabled=true;document.getElementById("download").disabled=true;}
+document.getElementById("reset").onclick=()=>{["backup","pass","dec","out"].forEach(id=>document.getElementById(id).value="");outbox.textContent="—";document.getElementById("copy").disabled=true;document.getElementById("download").disabled=true;}
 </script>
 </html>
