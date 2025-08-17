@@ -1,2 +1,29 @@
-<!doctype html><meta charset="utf-8"><title>Site OK</title>
-<h1>Site OK</h1><p>GitHub Pages (gh-pages) yayında.</p>
+<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MVT iOS Self-Check</title><style>body{font:16px/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 16px}header{margin-bottom:20px}.card{border:1px solid #ddd;border-radius:10px;padding:16px;margin:16px 0}label{display:block;margin:10px 0 6px}input,select,button{font:inherit}input,select{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}pre{background:#0b1020;color:#e8e8e8;padding:16px;border-radius:10px;overflow:auto}.row{display:flex;gap:12px;flex-wrap:wrap}.row>div{flex:1 1 260px}small{color:#555}</style><header><h1>MVT iOS Self-Check Yardımcısı</h1><p>Bu sayfa <b>MVT</b> komutlarını <i>yerelde</i> çalıştırmanız için üretir; veri gönderimi yoktur.</p></header><div class="card"><div class="row"><div><label>Yedek klasörü (UDID)</label><input id="backup" placeholder="/Users/ADIN/Library/Application Support/MobileSync/Backup/0000.../"><small>Finder › iPhone › Manage Backups › “Show in Finder”.</small></div><div><label>Yedek parolası (opsiyonel)</label><input id="pass" type="password" placeholder="••••••"></div><div><label>Çıktı klasörü</label><input id="out" value="$HOME/mvt_out"></div></div><div class="row"><div><label>Decrypted klasörü</label><input id="dec" value="$HOME/decrypted"></div><div><label>Kurulum yöntemi</label><select id="install"><option value="pipx">pipx (önerilen)</option><option value="brew">Homebrew</option></select></div></div><p><button id="gen">Komutları üret</button> <button id="copy" disabled>Kopyala</button> <button id="download" disabled>.sh indir</button></p><pre id="outbox" aria-live="polite">Burada komutlar görünecek…</pre><small><b>Uyarı:</b> Yalnızca kendi cihazınızı veya açık rıza alınmış cihazları tarayın. Eşleşme çıkmaması %100 temiz olduğu anlamına gelmez.</small></div><div class="card"><h3>Nasıl çalıştırırım?</h3><ol><li>Mac’te Terminal’i açın.</li><li>Bu sayfanın ürettiği komutların tamamını kopyalayıp yapıştırın.</li><li>Tarama bitince <code>mvt_out</code> klasöründe <code>*detected*.json</code> varsa eşleşme vardır.</li></ol></div><script>function shEscape(s){return s.replaceAll("'", "'\\''")}function tpl({backup,pass,dec,out,install}){const installBlock=install==="brew"?`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"; fi
+brew install pipx || true
+pipx ensurepath; exec zsh -l || true
+pipx install mvt || true
+`:`python3 -m pip install --user pipx || true
+python3 -m pipx ensurepath || true
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile
+exec zsh -l || true
+pipx install mvt || true
+`;const passPart=pass?`BACKUP_PASS='${shEscape(pass)}'`:`read -s BACKUP_PASS; printf "\\n"`;return `# ==== Kurulum ====
+${installBlock}
+# ==== Değişkenler ====
+BACKUP_SRC="${backup}"
+DEC="${dec}"
+OUT="${out}"
+mkdir -p "$DEC" "$OUT"
+# ==== Decrypt ====
+${passPart}
+mvt-ios decrypt-backup -p "$BACKUP_PASS" -d "$DEC" "$BACKUP_SRC" || true
+# ==== Kaynak seçimi ====
+SRC="$BACKUP_SRC"
+if [ -d "$DEC" ] && [ "$(ls -A "$DEC" 2>/dev/null | wc -l)" -gt 0 ]; then SRC="$DEC"; fi
+# ==== Tarama ====
+mvt-ios download-iocs
+mvt-ios check-backup --output "$OUT" "$SRC"
+open "$OUT"
+unset BACKUP_PASS
+`; }const outbox=document.getElementById('outbox');document.getElementById('gen').onclick=()=>{const backup=document.getElementById('backup').value.trim();const pass=document.getElementById('pass').value;const dec=document.getElementById('dec').value.trim()||"$HOME/decrypted";const out=document.getElementById('out').value.trim()||"$HOME/mvt_out";const install=document.getElementById('install').value;if(!backup){outbox.textContent="Lütfen yedek klasörü yolunu girin.";return;}const script=tpl({backup,pass,dec,out,install});outbox.textContent=script;document.getElementById('copy').disabled=false;document.getElementById('download').disabled=false;};document.getElementById('copy').onclick=async()=>{await navigator.clipboard.writeText(outbox.textContent);alert("Komutlar kopyalandı. Terminal'e yapıştırın.");};document.getElementById('download').onclick=()=>{const blob=new Blob([outbox.textContent],{type:"text/x-shellscript"});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download="mvt_ios_scan.sh";a.click();URL.revokeObjectURL(a.href);};</script><footer class="card"><b>Gizlilik:</b> Bu sayfa yalnızca tarayıcınızda çalışır; veri gönderimi yoktur. | <a href="https://mvt.re" target="_blank" rel="noopener">MVT projesi</a></footer></html>
