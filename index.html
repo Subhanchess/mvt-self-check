@@ -1,21 +1,203 @@
-<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>MVT iOS Self-Check</title><style>body{font:16px/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif;max-width:900px;margin:40px auto;padding:0 16px}header{margin-bottom:20px}.card{border:1px solid #ddd;border-radius:10px;padding:16px;margin:16px 0}label{display:block;margin:10px 0 6px}input,select,button{font:inherit}input,select{width:100%;padding:10px;border:1px solid #ccc;border-radius:8px}pre{background:#0b1020;color:#e8e8e8;padding:16px;border-radius:10px;overflow:auto}.row{display:flex;gap:12px;flex-wrap:wrap}.row>div{flex:1 1 260px}small{color:#555}</style><header><h1>MVT iOS Self-Check Yardımcısı</h1><p>Bu sayfa <b>MVT</b> komutlarını <i>yerelde</i> çalıştırmanız için üretir; veri gönderimi yoktur.</p></header><div class="card"><div class="row"><div><label>Yedek klasörü (UDID)</label><input id="backup" placeholder="/Users/ADIN/Library/Application Support/MobileSync/Backup/0000.../"><small>Finder › iPhone › Manage Backups › “Show in Finder”.</small></div><div><label>Yedek parolası (opsiyonel)</label><input id="pass" type="password" placeholder="••••••"></div><div><label>Çıktı klasörü</label><input id="out" value="$HOME/mvt_out"></div></div><div class="row"><div><label>Decrypted klasörü</label><input id="dec" value="$HOME/decrypted"></div><div><label>Kurulum yöntemi</label><select id="install"><option value="pipx">pipx (önerilen)</option><option value="brew">Homebrew</option></select></div></div><p><button id="gen">Komutları üret</button> <button id="copy" disabled>Kopyala</button> <button id="download" disabled>.sh indir</button></p><pre id="outbox" aria-live="polite">Burada komutlar görünecek…</pre><small><b>Uyarı:</b> Yalnızca kendi cihazınızı veya açık rıza alınmış cihazları tarayın. Eşleşme çıkmaması %100 temiz olduğu anlamına gelmez.</small></div><div class="card"><h3>Nasıl çalıştırırım?</h3><ol><li>Mac’te Terminal’i açın.</li><li>Bu sayfanın ürettiği komutların tamamını kopyalayıp yapıştırın.</li><li>Tarama bitince <code>mvt_out</code> klasöründe <code>*detected*.json</code> varsa eşleşme vardır.</li></ol></div><script>function shEscape(s){return s.replaceAll("'", "'\\''")}function tpl({backup,pass,dec,out,install}){const installBlock=install==="brew"?`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
+<!doctype html><html lang="tr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MVT Self-Check</title>
+<style>
+:root{--bg:#0b0e14;--card:#121624;--muted:#7d89a5;--text:#e7ecf7;--acc:#4da3ff;--ok:#3ecf8e;--warn:#ffd166;--err:#ff6b6b;--line:#1f2433}
+@media (prefers-color-scheme: light){:root{--bg:#f7f9fc;--card:#ffffff;--muted:#5b657a;--text:#0a0f1a;--acc:#1464ff;--line:#e6e9f2}}
+html,body{background:var(--bg);color:var(--text);font:16px/1.55 system-ui,Segoe UI,Roboto,Arial,sans-serif}
+.container{max-width:980px;margin:40px auto;padding:0 18px}
+h1{font-size:32px;margin:0 0 8px} h2{font-size:20px;margin:22px 0 8px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:18px 0;box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.grid{display:grid;gap:12px;grid-template-columns:1fr 1fr 1fr}
+.grid-2{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+label{font-weight:600;margin:8px 0 6px;display:block}
+input,select,button,textarea{font:inherit} input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);background:transparent;border-radius:10px;color:var(--text)}
+select{appearance:none}
+.btn{padding:10px 14px;border:1px solid var(--line);background:transparent;border-radius:10px;color:var(--text);cursor:pointer}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.btn-primary{border-color:var(--acc);background:var(--acc);color:#fff}
+.btn-ghost{border-color:var(--line);background:transparent}
+.badge{display:inline-block;border-radius:999px;padding:2px 10px;font-size:12px;border:1px solid var(--line);color:var(--muted)}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+pre{background:#0b1020;color:#e8e8e8;border-radius:12px;padding:14px;overflow:auto}
+.kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--line);padding:2px 6px;border-radius:6px}
+small{color:var(--muted)}
+.details summary{cursor:pointer;font-weight:600}
+footer{opacity:.9;margin:20px 0;text-align:center}
+hr{border:0;border-top:1px solid var(--line);margin:14px 0}
+.header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+select.lang{min-width:120px}
+.notice{font-size:14px;border-left:3px solid var(--line);padding-left:10px}
+.ok{color:var(--ok)} .warn{color:var(--warn)} .err{color:var(--err)}
+</style>
+
+<div class="container">
+  <div class="header">
+    <div>
+      <h1 data-i18n="title">MVT iOS Self-Check Yardımcısı</h1>
+      <div class="notice"><span data-i18n="subtitle">Bu sayfa MVT komutlarını <b>yerelde</b> çalıştırmanız için üretir; veri gönderimi yoktur.</span></div>
+    </div>
+    <div>
+      <label for="lang" style="font-weight:600;margin-right:6px" data-i18n="language">Dil</label>
+      <select id="lang" class="lang">
+        <option value="tr">Türkçe</option>
+        <option value="az">Azərbaycanca</option>
+        <option value="en">English</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="grid">
+      <div>
+        <label data-i18n="backup_dir">Yedek klasörü (UDID)</label>
+        <input id="backup" placeholder="/Users/ADIN/Library/Application Support/MobileSync/Backup/XXXXXXXX/" />
+        <small data-i18n="backup_hint">Finder › iPhone › Manage Backups › “Show in Finder”.</small>
+      </div>
+      <div>
+        <label data-i18n="pass">Yedek parolası (opsiyonel)</label>
+        <input id="pass" type="password" placeholder="••••••" />
+      </div>
+      <div>
+        <label data-i18n="out_dir">Çıktı klasörü</label>
+        <input id="out" value="$HOME/mvt_out" />
+      </div>
+    </div>
+
+    <div class="grid-2" style="margin-top:8px">
+      <div>
+        <label data-i18n="dec_dir">Decrypted klasörü</label>
+        <input id="dec" value="$HOME/decrypted" />
+      </div>
+      <div>
+        <label data-i18n="install">Kurulum yöntemi</label>
+        <select id="install">
+          <option value="pipx">pipx (önerilen)</option>
+          <option value="brew">Homebrew</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+      <button class="btn btn-primary" id="gen" data-i18n="gen">Komutları üret</button>
+      <button class="btn" id="copy" disabled data-i18n="copy">Kopyala</button>
+      <button class="btn" id="download" disabled data-i18n="download">.sh indir</button>
+      <button class="btn btn-ghost" id="reset" data-i18n="reset">Sıfırla</button>
+    </div>
+
+    <pre id="outbox" aria-live="polite" style="margin-top:10px">—</pre>
+    <small class="notice" data-i18n="warning"><b>Uyarı:</b> Yalnızca kendi cihazınızı veya açık rıza alınmış cihazları tarayın. Eşleşme çıkmaması %100 temiz olduğunuz anlamına gelmez.</small>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="how">Nasıl çalıştırırım?</h2>
+    <ol id="steps">
+      <li data-i18n="s1">Mac’te Terminal’i açın.</li>
+      <li data-i18n="s2">Bu sayfanın ürettiği komutların <b>tamamını</b> kopyalayıp yapıştırın.</li>
+      <li data-i18n="s3">Tarama bitince <code>mvt_out</code> klasöründe <code>*detected*.json</code> varsa eşleşme vardır.</li>
+    </ol>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="helpers">Hızlı yardımcılar</h2>
+    <div class="grid-2">
+      <div class="notice">
+        <b data-i18n="open_backup">Yedek klasörünü Finder’da aç</b><br>
+        <button class="btn" id="copyOpenBackup">Komutu kopyala</button>
+        <small><span class="kbd">open ~/Library/"Application Support"/MobileSync/Backup/</span></small>
+      </div>
+      <div class="notice">
+        <b data-i18n="full_disk">Terminal’e Full Disk Access ver</b><br>
+        <button class="btn" id="copyFDA">Komutu kopyala</button>
+        <small><span class="kbd">open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"</span></small>
+      </div>
+    </div>
+  </div>
+
+  <details class="card details">
+    <summary data-i18n="troubles">Sık karşılaşılan sorunlar</summary>
+    <ul>
+      <li data-i18n="e1"><b>Operation not permitted</b>: System Settings → Privacy & Security → Full Disk Access → Terminal’i ekleyin ve Terminal’i yeniden başlatın.</li>
+      <li data-i18n="e2"><b>Failed decrypting backup</b>: Şifreli yedekse doğru parolayı girin; değilse parolayı boş bırakın ve ham yedeği tarayın.</li>
+      <li data-i18n="e3"><b>file is not a database</b> çok çıkıyorsa: Yedeği silip yeniden alın; taramayı tekrar çalıştırın.</li>
+    </ul>
+  </details>
+
+  <div class="card">
+    <h2 data-i18n="privacy">Gizlilik & Hukuki</h2>
+    <p data-i18n="privacy_text">Sayfa tamamen tarayıcınızda çalışır; hiçbir veri sunucuya gönderilmez. Yalnızca kendi cihazınızı tarayın veya açık rıza alın. Kamuya açık IOC’lerle eşleşme bulunmaması %100 temiz olduğunuz anlamına gelmez.</p>
+  </div>
+
+  <footer>
+    <span class="badge">MVT</span> • <a href="https://mvt.re" target="_blank" rel="noopener">mvt.re</a> • <span class="muted">©</span>
+  </footer>
+</div>
+
+<script>
+const L={
+  tr:{title:"MVT iOS Self-Check Yardımcısı",subtitle:"Bu sayfa MVT komutlarını <b>yerelde</b> çalıştırmanız için üretir; veri gönderimi yoktur.",language:"Dil",
+      backup_dir:"Yedek klasörü (UDID)",backup_hint:"Finder › iPhone › Manage Backups › “Show in Finder”.",pass:"Yedek parolası (opsiyonel)",out_dir:"Çıktı klasörü",dec_dir:"Decrypted klasörü",install:"Kurulum yöntemi",
+      gen:"Komutları üret",copy:"Kopyala",download:".sh indir",reset:"Sıfırla",
+      warning:"<b>Uyarı:</b> Yalnızca kendi cihazınızı veya açık rıza alınmış cihazları tarayın. Eşleşme çıkmaması %100 temiz olduğunuz anlamına gelmez.",
+      how:"Nasıl çalıştırırım?",s1:"Mac’te Terminal’i açın.",s2:"Bu sayfanın ürettiği komutların <b>tamamını</b> kopyalayıp yapıştırın.",s3:"Tarama bitince <code>mvt_out</code> klasöründe <code>*detected*.json</code> varsa eşleşme vardır.",
+      helpers:"Hızlı yardımcılar",open_backup:"Yedek klasörünü Finder’da aç",full_disk:"Terminal’e Full Disk Access ver",
+      troubles:"Sık karşılaşılan sorunlar",e1:"<b>Operation not permitted</b>: System Settings → Privacy & Security → Full Disk Access → Terminal’i ekleyin ve Terminal’i yeniden başlatın.",
+      e2:"<b>Failed decrypting backup</b>: Şifreli yedekse doğru parolayı girin; değilse parolayı boş bırakın ve ham yedeği tarayın.",
+      e3:"<b>file is not a database</b> çok çıkıyorsa: Yedeği silip yeniden alın; taramayı tekrar çalıştırın.",
+      privacy:"Gizlilik & Hukuki",privacy_text:"Sayfa tamamen tarayıcınızda çalışır; hiçbir veri sunucuya gönderilmez. Yalnızca kendi cihazınızı tarayın veya açık rıza alın. Kamuya açık IOC’lerle eşleşme bulunmaması %100 temiz olduğunuz anlamına gelmez.",
+      need_backup:"Lütfen yedek klasörü yolunu girin."},
+  az:{title:"MVT iOS Özünü Yoxlama Köməkçisi",subtitle:"Bu səhifə MVT əmrlərini <b>yerli</b> işlətdirmək üçün yaradır; heç bir məlumat göndərilmir.",language:"Dil",
+      backup_dir:"Yedək qovluğu (UDID)",backup_hint:"Finder › iPhone › Manage Backups › “Show in Finder”.",pass:"Yedəyin parolu (isteğe bağlı)",out_dir:"Çıxış qovluğu",dec_dir:"Deşifrə olunmuş qovluq",install:"Quraşdırma üsulu",
+      gen:"Əmrləri yarat",copy:"Kopyala",download:".sh endir",reset:"Sıfırla",
+      warning:"<b>Xəbərdarlıq:</b> Yalnız öz cihazınızı və ya açıq razılıq verilmiş cihazları yoxlayın. Uyğunluq tapılmaması 100% təmiz olduğunuz demək deyil.",
+      how:"Necə işlədirəm?",s1:"Mac-də Terminalı açın.",s2:"Bu səhifənin yaratdığı əmrləri tam şəkildə kopyalayıb yapışdırın.",s3:"Bitəndə <code>mvt_out</code> qovluğunda <code>*detected*.json</code> varsa uyğunluq var.",
+      helpers:"Sürətli yardım",open_backup:"Yedək qovluğunu Finder-də aç",full_disk:"Terminal üçün Full Disk Access ver",
+      troubles:"Tez-tez rast gəlinən problemlər",e1:"<b>Operation not permitted</b>: System Settings → Privacy & Security → Full Disk Access → Terminalı əlavə edib yenidən başladın.",
+      e2:"<b>Failed decrypting backup</b>: Şifrələnibsə düzgün parolu daxil edin; deyilsə parolsuz tarayın.",
+      e3:"<b>file is not a database</b> çox çıxarsa: Yedəyi silib yenidən alın, yenidən yoxlayın.",
+      privacy:"Məxfilik & Hüquqi",privacy_text:"Səhifə tamamilə brauzerdə işləyir; heç bir məlumat göndərilmir. Yalnız öz cihazınızı yoxlayın və ya açıq razılıq alın. Uyğunluq olmaması 100% təmizlik deyil.",
+      need_backup:"Zəhmət olmasa yedək qovluğunun yolunu daxil edin."},
+  en:{title:"MVT iOS Self-Check Helper",subtitle:"This page generates MVT commands to run <b>locally</b>; no data is sent.",language:"Language",
+      backup_dir:"Backup folder (UDID)",backup_hint:"Finder › iPhone › Manage Backups › “Show in Finder”.",pass:"Backup password (optional)",out_dir:"Output folder",dec_dir:"Decrypted folder",install:"Install method",
+      gen:"Generate commands",copy:"Copy",download:"Download .sh",reset:"Reset",
+      warning:"<b>Note:</b> Run only on your own device or with explicit consent. No detections ≠ 100% clean.",
+      how:"How to run?",s1:"Open Terminal on your Mac.",s2:"Copy & paste the entire script generated by this page.",s3:"When done, if <code>*detected*.json</code> appears under <code>mvt_out</code>, there is a match.",
+      helpers:"Quick helpers",open_backup:"Open backup folder in Finder",full_disk:"Grant Full Disk Access to Terminal",
+      troubles:"Common issues",e1:"<b>Operation not permitted</b>: System Settings → Privacy & Security → Full Disk Access → add Terminal and restart it.",
+      e2:"<b>Failed decrypting backup</b>: If backup is encrypted, enter the correct password; otherwise leave blank and scan the raw backup.",
+      e3:"If <b>file is not a database</b> appears a lot: delete and re-create the backup, then re-run.",
+      privacy:"Privacy & Legal",privacy_text:"The page runs entirely in your browser; nothing is uploaded. Only scan your own device or with explicit consent. Lack of matches does not guarantee a clean device.",
+      need_backup:"Please provide the backup folder path."}
+};
+function setLang(lang){const t=L[lang]||L.tr;document.querySelectorAll("[data-i18n]").forEach(el=>{el.innerHTML=t[el.dataset.i18n]||el.innerHTML});document.documentElement.lang=lang}
+document.getElementById("lang").addEventListener("change",e=>{setLang(e.target.value)}); setLang("tr");
+
+// Helpers: copy commands
+document.getElementById("copyOpenBackup").onclick=()=>navigator.clipboard.writeText('open ~/Library/"Application Support"/MobileSync/Backup/').then(()=>alert("Komut kopyalandı."));
+document.getElementById("copyFDA").onclick=()=>navigator.clipboard.writeText('open "x-apple.systempreferences:com.apple.preference.security?Privacy_AllFiles"').then(()=>alert("Komut kopyalandı."));
+
+// Script generation
+function shEscape(s){return s.replaceAll("'","'\\''")}
+function tpl({backup,pass,dec,out,install}){
+const installBlock=install==="brew"?`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || true
 if [ -x /opt/homebrew/bin/brew ]; then eval "$(/opt/homebrew/bin/brew shellenv)"; fi
 brew install pipx || true
-pipx ensurepath; exec zsh -l || true
+pipx ensurepath || true
+exec zsh -l || true
 pipx install mvt || true
 `:`python3 -m pip install --user pipx || true
 python3 -m pipx ensurepath || true
 echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zprofile
 exec zsh -l || true
 pipx install mvt || true
-`;const passPart=pass?`BACKUP_PASS='${shEscape(pass)}'`:`read -s BACKUP_PASS; printf "\\n"`;return `# ==== Kurulum ====
-${installBlock}
-# ==== Değişkenler ====
+`;
+const passPart=pass?`BACKUP_PASS='${shEscape(pass)}'`:`read -s BACKUP_PASS; printf "\\n"`;
+return `# ==== MVT Kurulum ====
+${installBlock}# ==== Değişkenler ====
 BACKUP_SRC="${backup}"
 DEC="${dec}"
 OUT="${out}"
 mkdir -p "$DEC" "$OUT"
-# ==== Decrypt ====
+# ==== Decrypt (varsa) ====
 ${passPart}
 mvt-ios decrypt-backup -p "$BACKUP_PASS" -d "$DEC" "$BACKUP_SRC" || true
 # ==== Kaynak seçimi ====
@@ -26,4 +208,23 @@ mvt-ios download-iocs
 mvt-ios check-backup --output "$OUT" "$SRC"
 open "$OUT"
 unset BACKUP_PASS
-`; }const outbox=document.getElementById('outbox');document.getElementById('gen').onclick=()=>{const backup=document.getElementById('backup').value.trim();const pass=document.getElementById('pass').value;const dec=document.getElementById('dec').value.trim()||"$HOME/decrypted";const out=document.getElementById('out').value.trim()||"$HOME/mvt_out";const install=document.getElementById('install').value;if(!backup){outbox.textContent="Lütfen yedek klasörü yolunu girin.";return;}const script=tpl({backup,pass,dec,out,install});outbox.textContent=script;document.getElementById('copy').disabled=false;document.getElementById('download').disabled=false;};document.getElementById('copy').onclick=async()=>{await navigator.clipboard.writeText(outbox.textContent);alert("Komutlar kopyalandı. Terminal'e yapıştırın.");};document.getElementById('download').onclick=()=>{const blob=new Blob([outbox.textContent],{type:"text/x-shellscript"});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download="mvt_ios_scan.sh";a.click();URL.revokeObjectURL(a.href);};</script><footer class="card"><b>Gizlilik:</b> Bu sayfa yalnızca tarayıcınızda çalışır; veri gönderimi yoktur. | <a href="https://mvt.re" target="_blank" rel="noopener">MVT projesi</a></footer></html>
+`; }
+
+const outbox=document.getElementById("outbox");
+document.getElementById("gen").onclick=()=>{
+  const backup=document.getElementById("backup").value.trim();
+  if(!backup){outbox.textContent=L[document.documentElement.lang].need_backup;return;}
+  const pass=document.getElementById("pass").value;
+  const dec=document.getElementById("dec").value.trim()||"$HOME/decrypted";
+  const out=document.getElementById("out").value.trim()||"$HOME/mvt_out";
+  const install=document.getElementById("install").value;
+  const script=tpl({backup,pass,dec,out,install});
+  outbox.textContent=script;
+  document.getElementById("copy").disabled=false;
+  document.getElementById("download").disabled=false;
+};
+document.getElementById("copy").onclick=async()=>{await navigator.clipboard.writeText(outbox.textContent);alert("Komutlar kopyalandı. Terminal'e yapıştırın.");};
+document.getElementById("download").onclick=()=>{const blob=new Blob([outbox.textContent],{type:"text/x-shellscript"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="mvt_ios_scan.sh";a.click();URL.revokeObjectURL(a.href);};
+document.getElementById("reset").onclick=()=>["backup","pass","dec","out"].forEach(id=>document.getElementById(id).value="");outbox.textContent="—";document.getElementById("copy").disabled=true;document.getElementById("download").disabled=true;}
+</script>
+</html>
