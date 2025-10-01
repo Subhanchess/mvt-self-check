@@ -1,3 +1,2 @@
 url,selector_or_hint,last_seen
-https://kurum.org/grant-2025,deadline,
-https://ornek.org/fund,div.deadline-date,
+http://127.0.0.1:8000/,deadline,
