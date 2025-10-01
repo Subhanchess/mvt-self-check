@@ -16,6 +16,24 @@ DATE_RE = re.compile(
     re.I,
 )
 
+
+def _looks_like_selector(candidate):
+    candidate = (candidate or "").strip()
+    if not candidate:
+        return False
+    return any(c in candidate for c in ".#[]:>")
+
+
+def _safe_select(soup, selector):
+    selector = (selector or "").strip()
+    if not selector:
+        return []
+    try:
+        return soup.select(selector)
+    except Exception:
+        return []
+
+
 STATUS_KEYWORDS = [
     "application closed",
     "applications closed",
@@ -27,18 +45,17 @@ STATUS_KEYWORDS = [
     "başvurular açık",
 ]
 
-def extract_candidate(html, selector_or_hint):
+
+def extract_candidate(html, selector_or_hint, snapshot_mode=False):
     soup = BeautifulSoup(html, "lxml")
     text = soup.get_text("\n", strip=True)
-    if selector_or_hint and any(c in selector_or_hint for c in ".#[]:>"):
-        try:
-            nodes = soup.select(selector_or_hint)
-            for n in nodes:
-                m = DATE_RE.search(n.get_text(" ", strip=True))
-                if m:
-                    return m.group(0)
-        except Exception:
-            pass
+    selector = (selector_or_hint or "").strip()
+    if selector and (_looks_like_selector(selector) or snapshot_mode):
+        nodes = _safe_select(soup, selector)
+        for n in nodes:
+            m = DATE_RE.search(n.get_text(" ", strip=True))
+            if m:
+                return m.group(0)
     hint = (selector_or_hint or "").lower()
     lines = text.lower().splitlines()
     for line in lines:
