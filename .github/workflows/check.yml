@@ -1,0 +1,26 @@
+name: Check Deadlines
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python check.py
+        env:
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          MAILGUN_DOMAIN: ${{ secrets.MAILGUN_DOMAIN }}
+          MAILGUN_KEY: ${{ secrets.MAILGUN_KEY }}
+      - name: Commit updates
+        run: |
+          git config user.name "deadline-bot"
+          git config user.email "bot@example.com"
+          git add links.csv
+          git commit -m "update last_seen [skip ci]" || echo "no changes"
+          git push
