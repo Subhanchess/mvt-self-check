@@ -16,6 +16,17 @@ DATE_RE = re.compile(
     re.I,
 )
 
+STATUS_KEYWORDS = [
+    "application closed",
+    "applications closed",
+    "application open",
+    "applications open",
+    "başvuru kapandı",
+    "başvurular kapandı",
+    "başvuru açık",
+    "başvurular açık",
+]
+
 def extract_candidate(html, selector_or_hint):
     soup = BeautifulSoup(html, "lxml")
     text = soup.get_text("\n", strip=True)
@@ -37,12 +48,21 @@ def extract_candidate(html, selector_or_hint):
             m = DATE_RE.search(line)
             if m:
                 return m.group(0)
+            for keyword in STATUS_KEYWORDS:
+                if keyword in line:
+                    return keyword
     m = DATE_RE.search(text)
-    return m.group(0) if m else ""
+    if m:
+        return m.group(0)
+    lower_text = text.lower()
+    for keyword in STATUS_KEYWORDS:
+        if keyword in lower_text:
+            return keyword
+    return ""
 
 def notify(url, old, new):
     subject = f"DEADLINE GÜNCELLENDİ: {url}"
-    body = f"Bağlantı: {url}\nEski: {old or '(yok)'}\nYeni: {new}\n"
+    body = f"Bağlantı: {url}\nEski: {old or '(yok)'}\nYeni: {new or '(yok)'}\n"
     if MAILGUN_KEY and MAILGUN_DOMAIN and EMAIL_TO:
         requests.post(
             f"https://api.mailgun.net/v3/{MAILGUN_DOMAIN}/messages",
@@ -76,7 +96,7 @@ def main():
                 rows.append(row)
                 continue
             cand = extract_candidate(html, sel)
-            if cand and cand != last:
+            if cand != last:
                 notify(url, last, cand)
                 row["last_seen"] = cand
                 changed = True
