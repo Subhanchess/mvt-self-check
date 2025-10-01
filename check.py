@@ -1,4 +1,5 @@
 import csv
+import hashlib
 import os
 import re
 import sys
@@ -16,7 +17,7 @@ DATE_RE = re.compile(
     re.I,
 )
 
-def extract_candidate(html, selector_or_hint):
+def extract_candidate(html, selector_or_hint, snapshot_mode=False):
     soup = BeautifulSoup(html, "lxml")
     text = soup.get_text("\n", strip=True)
     if selector_or_hint and any(c in selector_or_hint for c in ".#[]:>"):
@@ -38,7 +39,27 @@ def extract_candidate(html, selector_or_hint):
             if m:
                 return m.group(0)
     m = DATE_RE.search(text)
-    return m.group(0) if m else ""
+    if m:
+        return m.group(0)
+
+    if snapshot_mode:
+        snapshot_text = ""
+        if selector_or_hint and any(c in selector_or_hint for c in ".#[]:>"):
+            try:
+                nodes = soup.select(selector_or_hint)
+                if nodes:
+                    snapshot_text = "\n".join(
+                        n.get_text("\n", strip=True) for n in nodes
+                    )
+            except Exception:
+                snapshot_text = ""
+        if not snapshot_text:
+            snapshot_text = text
+        normalized = re.sub(r"\s+", " ", snapshot_text).strip()
+        if normalized:
+            return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+    return ""
 
 def notify(url, old, new):
     subject = f"DEADLINE GÜNCELLENDİ: {url}"
@@ -66,7 +87,17 @@ def main():
         reader = csv.DictReader(f)
         for row in reader:
             url = row["url"].strip()
-            sel = row.get("selector_or_hint", "").strip()
+            sel_raw = row.get("selector_or_hint", "").strip()
+            sel_lower = sel_raw.lower()
+            snapshot_mode = False
+            if sel_lower.startswith("snapshot:"):
+                snapshot_mode = True
+                sel = sel_raw[len("snapshot:") :].strip()
+            elif sel_lower == "snapshot":
+                snapshot_mode = True
+                sel = ""
+            else:
+                sel = sel_raw
             last = row.get("last_seen", "").strip()
             try:
                 r = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
@@ -75,7 +106,7 @@ def main():
                 print(f"[ERR] {url}: {e}", file=sys.stderr)
                 rows.append(row)
                 continue
-            cand = extract_candidate(html, sel)
+            cand = extract_candidate(html, sel, snapshot_mode=snapshot_mode)
             if cand and cand != last:
                 notify(url, last, cand)
                 row["last_seen"] = cand
