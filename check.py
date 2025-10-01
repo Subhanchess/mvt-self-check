@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import time
+from typing import Iterable, Tuple
 
 import requests
 from bs4 import BeautifulSoup
@@ -36,36 +37,60 @@ def _hash_snapshot(text: str) -> str:
     return f"snapshot:sha256:{digest}"
 
 
+def _normalize_whitespace(value: str) -> str:
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def _node_texts(nodes: Iterable) -> Tuple[str, str]:
+    extracted = [n.get_text("\n", strip=True) for n in nodes]
+    joined = "\n".join(extracted)
+    return joined, joined.lower()
+
+
+def _search_date(text: str) -> str:
+    match = DATE_RE.search(text)
+    return match.group(0) if match else ""
+
+
 def extract_candidate(html, selector_or_hint, snapshot_mode=False):
     soup = BeautifulSoup(html, "lxml")
-    text = soup.get_text("\n", strip=True)
+    page_text = soup.get_text("\n", strip=True)
     nodes = []
+
     if selector_or_hint and _looks_like_selector(selector_or_hint):
         nodes = _safe_select(soup, selector_or_hint)
-        for n in nodes:
-            m = DATE_RE.search(n.get_text(" ", strip=True))
-            if m:
-                return m.group(0)
+        for node in nodes:
+            node_text = node.get_text(" ", strip=True)
+            found = _search_date(node_text)
+            if found:
+                return found
+
     hint = (selector_or_hint or "").lower()
-    lines = text.lower().splitlines()
+    lowered_page = page_text.lower()
+    lines = lowered_page.splitlines()
+
     for line in lines:
-        if (hint and hint in line) or ("deadline" in line) or ("son başvuru" in line) or (
-            "application closes" in line
+        if (
+            (hint and hint in line)
+            or ("deadline" in line)
+            or ("son başvuru" in line)
+            or ("application closes" in line)
         ):
-            m = DATE_RE.search(line)
-            if m:
-                return m.group(0)
-    m = DATE_RE.search(text)
-    if m:
-        return m.group(0)
+            found = _search_date(line)
+            if found:
+                return found
+
+    found = _search_date(page_text)
+    if found:
+        return found
 
     if snapshot_mode:
         snapshot_text = ""
         if nodes:
-            snapshot_text = "\n".join(n.get_text("\n", strip=True) for n in nodes)
+            snapshot_text, _ = _node_texts(nodes)
         if not snapshot_text:
-            snapshot_text = text
-        normalized = re.sub(r"\s+", " ", snapshot_text).strip()
+            snapshot_text = page_text
+        normalized = _normalize_whitespace(snapshot_text)
         if normalized:
             return _hash_snapshot(normalized)
 
