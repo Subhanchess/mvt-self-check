@@ -1,4 +1,2 @@
-requests
-beautifulsoup4
-lxml
-Flask
+-r requirements-core.txt
+-r requirements-ui.txt
