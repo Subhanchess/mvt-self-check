@@ -17,18 +17,35 @@ DATE_RE = re.compile(
     re.I,
 )
 
+SELECTOR_HINT_CHARS = ".#[]:>"
+
+
+def _looks_like_selector(text_hint: str) -> bool:
+    return any(c in text_hint for c in SELECTOR_HINT_CHARS)
+
+
+def _safe_select(soup: BeautifulSoup, selector: str):
+    try:
+        return soup.select(selector)
+    except Exception:
+        return []
+
+
+def _hash_snapshot(text: str) -> str:
+    digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return f"snapshot:sha256:{digest}"
+
+
 def extract_candidate(html, selector_or_hint, snapshot_mode=False):
     soup = BeautifulSoup(html, "lxml")
     text = soup.get_text("\n", strip=True)
-    if selector_or_hint and any(c in selector_or_hint for c in ".#[]:>"):
-        try:
-            nodes = soup.select(selector_or_hint)
-            for n in nodes:
-                m = DATE_RE.search(n.get_text(" ", strip=True))
-                if m:
-                    return m.group(0)
-        except Exception:
-            pass
+    nodes = []
+    if selector_or_hint and _looks_like_selector(selector_or_hint):
+        nodes = _safe_select(soup, selector_or_hint)
+        for n in nodes:
+            m = DATE_RE.search(n.get_text(" ", strip=True))
+            if m:
+                return m.group(0)
     hint = (selector_or_hint or "").lower()
     lines = text.lower().splitlines()
     for line in lines:
@@ -44,20 +61,13 @@ def extract_candidate(html, selector_or_hint, snapshot_mode=False):
 
     if snapshot_mode:
         snapshot_text = ""
-        if selector_or_hint and any(c in selector_or_hint for c in ".#[]:>"):
-            try:
-                nodes = soup.select(selector_or_hint)
-                if nodes:
-                    snapshot_text = "\n".join(
-                        n.get_text("\n", strip=True) for n in nodes
-                    )
-            except Exception:
-                snapshot_text = ""
+        if nodes:
+            snapshot_text = "\n".join(n.get_text("\n", strip=True) for n in nodes)
         if not snapshot_text:
             snapshot_text = text
         normalized = re.sub(r"\s+", " ", snapshot_text).strip()
         if normalized:
-            return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+            return _hash_snapshot(normalized)
 
     return ""
 

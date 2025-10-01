@@ -24,6 +24,6 @@ Sayfadaki herhangi bir metin değişikliğini izlemek isterseniz "anlık görün
 - `snapshot` &mdash; Tüm sayfa metninin normalize edilmiş özetini (SHA-256) saklar.
 - `snapshot:CSS_SEÇİCİ` &mdash; Sadece verilen CSS seçicideki metnin özetini saklar.
 
-Snapshot kipinde betik yine önce tarih aramayı dener; tarih bulunamazsa seçilen içeriğin düz metnini normalize edip SHA-256 özetiyle `last_seen` sütununda saklar. Metin değiştiğinde yeni özet üretildiği için `notify` çağrılır ve değişiklikten haberdar olursunuz.
+Snapshot kipinde betik yine önce tarih aramayı dener; tarih bulunamazsa seçilen içeriğin düz metnini normalize edip SHA-256 özetiyle `last_seen` sütununda saklar. Saklanan değer `snapshot:sha256:...` biçiminde olur; böylece tarih değerleri ile anlık görüntü özetleri kolayca ayırt edilir. Metin değiştiğinde yeni özet üretildiği için `notify` çağrılır ve değişiklikten haberdar olursunuz.
 
 Date-only davranışına geri dönmek için `selector_or_hint` değerinden `snapshot` önekini kaldırmanız yeterlidir.
