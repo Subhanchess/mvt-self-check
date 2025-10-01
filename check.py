@@ -2,7 +2,7 @@ import csv
 import os
 import re
 import sys
-import time
+from typing import Callable, Iterable, List, Tuple
 
 import requests
 from bs4 import BeautifulSoup
@@ -45,6 +45,36 @@ STATUS_KEYWORDS = [
     "başvurular açık",
 ]
 
+CSV_FIELDS = ["url", "selector_or_hint", "last_seen"]
+
+
+def load_links(path: str = "links.csv") -> List[dict]:
+    """Read tracked links from disk.
+
+    The CSV file is optional; an empty list is returned when it does not
+    exist. Every row contains the expected keys defined in ``CSV_FIELDS``.
+    """
+
+    if not os.path.exists(path):
+        return []
+    rows: List[dict] = []
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for raw in reader:
+            row = {field: (raw.get(field, "") or "").strip() for field in CSV_FIELDS}
+            rows.append(row)
+    return rows
+
+
+def save_links(rows: Iterable[dict], path: str = "links.csv") -> None:
+    """Persist the given rows to disk."""
+
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({field: row.get(field, "") for field in CSV_FIELDS})
+
 
 def extract_candidate(html, selector_or_hint, snapshot_mode=False):
     soup = BeautifulSoup(html, "lxml")
@@ -77,6 +107,25 @@ def extract_candidate(html, selector_or_hint, snapshot_mode=False):
             return keyword
     return ""
 
+
+def fetch_candidate(url: str, selector_or_hint: str, *, snapshot_mode: bool = False) -> str:
+    """Download ``url`` and extract the best matching deadline candidate.
+
+    A ``RuntimeError`` is raised when the network request fails so callers can
+    decide how to surface the problem (log, flash message, etc.).
+    """
+
+    try:
+        response = requests.get(
+            url,
+            timeout=30,
+            headers={"User-Agent": "Mozilla/5.0"},
+        )
+        html = response.text
+    except Exception as exc:  # pragma: no cover - exercised via integration
+        raise RuntimeError(str(exc)) from exc
+    return extract_candidate(html, selector_or_hint, snapshot_mode=snapshot_mode)
+
 def notify(url, old, new):
     subject = f"DEADLINE GÜNCELLENDİ: {url}"
     body = f"Bağlantı: {url}\nEski: {old or '(yok)'}\nYeni: {new or '(yok)'}\n"
@@ -96,32 +145,39 @@ def notify(url, old, new):
         print(subject)
         print(body)
 
-def main():
-    rows = []
+
+def scan_links(
+    rows: Iterable[dict],
+    *,
+    snapshot_mode: bool = False,
+    notifier: Callable[[str, str, str], None] = notify,
+) -> Tuple[List[dict], bool]:
+    """Return updated rows after scanning and whether anything changed."""
+
+    updated_rows: List[dict] = []
     changed = False
-    with open("links.csv", newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            url = row["url"].strip()
-            sel = row.get("selector_or_hint", "").strip()
-            last = row.get("last_seen", "").strip()
-            try:
-                r = requests.get(url, timeout=30, headers={"User-Agent": "Mozilla/5.0"})
-                html = r.text
-            except Exception as e:
-                print(f"[ERR] {url}: {e}", file=sys.stderr)
-                rows.append(row)
-                continue
-            cand = extract_candidate(html, sel)
-            if cand != last:
-                notify(url, last, cand)
-                row["last_seen"] = cand
-                changed = True
-            rows.append(row)
-    with open("links.csv", "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["url", "selector_or_hint", "last_seen"])
-        writer.writeheader()
-        writer.writerows(rows)
+    for row in rows:
+        url = (row.get("url") or "").strip()
+        sel = (row.get("selector_or_hint") or "").strip()
+        last = (row.get("last_seen") or "").strip()
+        try:
+            cand = fetch_candidate(url, sel, snapshot_mode=snapshot_mode)
+        except RuntimeError as exc:
+            print(f"[ERR] {url}: {exc}", file=sys.stderr)
+            updated_rows.append(dict(row))
+            continue
+        if cand != last:
+            notifier(url, last, cand)
+            row = dict(row)
+            row["last_seen"] = cand
+            changed = True
+        updated_rows.append(dict(row))
+    return updated_rows, changed
+
+def main():
+    rows = load_links()
+    updated, changed = scan_links(rows)
+    save_links(updated)
     print("[OK] scan done; changed=", changed)
 
 
