@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deadline Takip Paneli</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f172a;
+        --bg-card: rgba(15, 23, 42, 0.8);
+        --border: rgba(148, 163, 184, 0.3);
+        --fg: #f8fafc;
+        --muted: #94a3b8;
+        --accent: #38bdf8;
+        --success: #22c55e;
+        --warning: #eab308;
+        --error: #f87171;
+      }
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: linear-gradient(180deg, #020617, #1e293b 60%, #0f172a);
+        color: var(--fg);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      header,
+      footer {
+        text-align: center;
+        padding: 1.5rem 1rem;
+      }
+      main {
+        flex: 1;
+        width: min(1000px, 92vw);
+        margin: 0 auto 3rem;
+      }
+      h1 {
+        font-weight: 600;
+        font-size: clamp(1.8rem, 2.4vw + 1rem, 2.6rem);
+        margin-bottom: 0.25rem;
+      }
+      p.tagline {
+        color: var(--muted);
+        margin: 0;
+      }
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        padding: 1.5rem;
+        box-shadow: 0 20px 40px rgba(15, 23, 42, 0.45);
+        backdrop-filter: blur(8px);
+        margin-bottom: 1.5rem;
+      }
+      form.inline {
+        display: inline;
+      }
+      label {
+        display: block;
+        font-weight: 500;
+        margin-bottom: 0.4rem;
+      }
+      input[type="url"],
+      input[type="text"] {
+        width: 100%;
+        padding: 0.65rem 0.75rem;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.6);
+        color: inherit;
+        margin-bottom: 0.75rem;
+      }
+      .grid {
+        display: grid;
+        gap: 1rem;
+      }
+      @media (min-width: 720px) {
+        .grid-two {
+          grid-template-columns: 2fr 1fr;
+        }
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 0.6rem;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+        text-align: left;
+      }
+      th {
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+      }
+      td:last-child {
+        text-align: right;
+      }
+      .btn {
+        border: none;
+        border-radius: 999px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        background: rgba(148, 163, 184, 0.15);
+        color: var(--fg);
+      }
+      .btn:hover {
+        background: rgba(148, 163, 184, 0.28);
+      }
+      .btn.primary {
+        background: var(--accent);
+        color: #0f172a;
+      }
+      .btn.danger {
+        background: rgba(248, 113, 113, 0.2);
+        color: var(--error);
+      }
+      .btn.secondary {
+        background: rgba(56, 189, 248, 0.18);
+        color: var(--accent);
+      }
+      .stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        align-items: center;
+      }
+      .alerts {
+        display: grid;
+        gap: 0.75rem;
+        margin: 1rem 0;
+      }
+      .alert {
+        padding: 0.75rem 1rem;
+        border-radius: 12px;
+        border: 1px solid transparent;
+        font-size: 0.95rem;
+      }
+      .alert.success {
+        background: rgba(34, 197, 94, 0.18);
+        border-color: rgba(34, 197, 94, 0.45);
+      }
+      .alert.warning {
+        background: rgba(234, 179, 8, 0.18);
+        border-color: rgba(234, 179, 8, 0.45);
+      }
+      .alert.error {
+        background: rgba(248, 113, 113, 0.18);
+        border-color: rgba(248, 113, 113, 0.45);
+      }
+      .alert.info {
+        background: rgba(56, 189, 248, 0.18);
+        border-color: rgba(56, 189, 248, 0.45);
+      }
+      .empty {
+        text-align: center;
+        padding: 1.5rem;
+        color: var(--muted);
+      }
+      footer {
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Deadline Takip Paneli</h1>
+      <p class="tagline">Link ekle, CSV otomatik kaydedilsin, değişiklikte e-posta gelsin.</p>
+    </header>
+    <main>
+      <section class="card">
+        <h2>Yeni Link Ekle</h2>
+        <form method="post" action="{{ url_for('add_link') }}">
+          <label for="url">Bağlantı</label>
+          <input type="url" id="url" name="url" placeholder="https://ornek.org/fund" required />
+          <label for="selector">CSS seçicisi veya ipucu <small>(opsiyonel)</small></label>
+          <input type="text" id="selector" name="selector_or_hint" placeholder="div.deadline, 'deadline', 'son başvuru'..." />
+          <div class="stack">
+            <button type="submit" class="btn primary">Kaydet</button>
+            <button type="submit" class="btn secondary" form="scan-form">Manuel Tarama Çalıştır</button>
+          </div>
+        </form>
+        <form id="scan-form" method="post" action="{{ url_for('manual_scan') }}"></form>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="alerts">
+          {% for category, message in messages %}
+          <div class="alert {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+      </section>
+
+      <section class="card">
+        <h2>Takip Edilen Linkler</h2>
+        {% if links %}
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>URL</th>
+                <th>Seçici / İpucu</th>
+                <th>Son Görülen</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for link in links %}
+              <tr>
+                <td><a href="{{ link.url }}" target="_blank" rel="noopener">{{ link.url }}</a></td>
+                <td>{{ link.selector_or_hint or '-' }}</td>
+                <td>{{ link.last_seen or '—' }}</td>
+                <td>
+                  <form method="post" action="{{ url_for('delete_link') }}" class="inline">
+                    <input type="hidden" name="url" value="{{ link.url }}" />
+                    <button type="submit" class="btn danger">Sil</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+        <p class="empty">Henüz takip edilen link yok.</p>
+        {% endif %}
+      </section>
+    </main>
+    <footer>
+      <p>
+        API anahtarlarını ortam değişkenleriyle gir: <code>MAILGUN_DOMAIN</code>, <code>MAILGUN_KEY</code>,
+        <code>EMAIL_TO</code>.
+      </p>
+    </footer>
+  </body>
+</html>
